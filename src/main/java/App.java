@@ -5,9 +5,9 @@ import com.google.gson.*;
 
 public class App {
 
-	public static String filename = "placeholder";
-	public static String startFrame = "1";
-	public static String endFrame = "2";
+	public static String filename;
+	public static String startFrame;
+	public static String endFrame;
 	public static String currFrame = "0";
 	public static String currFrameRegex = "Fra:([0-9]+)";
 	public static Process proc;
@@ -15,10 +15,26 @@ public class App {
 
 	public static void main(String[] args) throws IOException, InterruptedException {
 
+	//Prepare Arguments
+	try
+	{
+		//Correct number of args
+		filename = args[0];
+		startFrame = args[1];
+		endFrame = args[2];
 
-	JsonObject jsonObject = new JsonParser().parse("{\"name\": \"John\"}").getAsJsonObject();
-
-	System.out.println(jsonObject.get("name").getAsString()); //John
+		//Correct arg types
+		Integer.parseInt(args[1]);
+		Integer.parseInt(args[2]);
+	}
+	catch(Exception e)
+	{
+		System.out.println("\nUsage: blender-render-farm file_name start_frame end_frame\n");
+		//System.out.println("Options:");
+		//System.out.println("");
+		System.exit(0);
+	}
+	
 
 	Runtime.getRuntime().addShutdownHook(new Thread() {
 		public void run() {
@@ -88,6 +104,7 @@ public class App {
 		}
 
 		proc.waitFor();
+		System.out.println();
 	}
 
 	currFrame = "-1";
