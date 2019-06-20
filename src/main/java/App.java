@@ -11,13 +11,12 @@ import java.util.*;
 public class App {
 
 	public static String workingDirectory;
-	public static String filename;
-	public static String startFrame;
-	public static String endFrame;
+	public static String blenderPath;
 	public static String currFrame = "0";
 	public static String currFrameRegex = "Fra:([0-9]+)";
 	public static Process proc;
 	public static boolean isRendering = false;
+	public static String currentJobFile;
 	public static final Scanner Scan = new Scanner(System.in);
 	
 	public static boolean isNumeric(String strNum) {
@@ -51,10 +50,11 @@ public class App {
 		{
 			//Correct number of args
 			workingDirectory = args[0];
+			blenderPath = args[1];
 		}
 		catch(Exception e)
 		{
-			System.out.println("\nUsage: blender-render-farm working_directory\n");
+			System.out.println("\nUsage: blender-render-farm working_directory blender_path\n");
 			System.exit(0);
 		}
 
@@ -79,7 +79,7 @@ public class App {
 					master();
 					break;
 				case 2:
-					System.out.println("Client Selected; returning");
+					client();
 					break;
 				case 3:
 					System.exit(0);
@@ -90,104 +90,12 @@ public class App {
 		} while (choice != 3);
 		
 		System.exit(0);
-		
-
-		//Prepare Arguments
-		try
-		{
-			//Correct number of args
-			filename = args[0];
-			startFrame = args[1];
-			endFrame = args[2];
-	
-			//Correct arg types
-			Integer.parseInt(args[1]);
-			Integer.parseInt(args[2]);
-		}
-		catch(Exception e)
-		{
-			System.out.println("\nUsage: blender-render-farm file_name start_frame end_frame\n");
-			//System.out.println("Options:");
-			//System.out.println("");
-			System.exit(0);
-		}
-		
-	
-		Runtime.getRuntime().addShutdownHook(new Thread() {
-			public void run() {
-				System.out.println("\n\nShutting Down...");
-				if (proc != null) {proc.destroy();}
-				if (currFrame != "-1" && isRendering)
-				{
-					try
-					{
-						Files.deleteIfExists(Paths.get("D:\\Documents\\BlenderFiles\\"+filename+"\\"+currFrame+".png")); 
-					} 
-					catch(NoSuchFileException e) 
-					{ 
-						System.out.println("Error deleting unfinished frame: No such file exists.");
-					}
-					catch(IOException e) 
-					{ 
-						System.out.println("Error deleting unfinished frame: Invalid permissions.");
-					} 
-	
-					System.out.println("Deleted unfinshed frame "+currFrame+" successfully.");
-				}
-			}
-		});
-	
-		long start = System.currentTimeMillis();
-	
-	
-		isRendering = false;
-		for (int i = Integer.parseInt(startFrame);i <= Integer.parseInt(endFrame);i++)
-		{
-			currFrame = Integer.toString(i);
-			if (new File("D:\\Documents\\BlenderFiles\\"+filename+"\\"+currFrame+".png").exists())
-			{
-				isRendering = false;
-				System.out.println("Skipping existing frame: "+currFrame);
-				continue;
-			}
-			isRendering = true;
-			String[] command = new String[] {
-			"C:\\Program Files\\Blender Foundation\\Blender\\blender.exe",
-			"-b", "D:\\Documents\\BlenderFiles\\"+filename+".blend",
-			"-o", "D:\\Documents\\BlenderFiles\\"+filename+"\\#",
-			"-F", "JPEG",
-			"-x", "1",
-			"-f", currFrame};
-	
-			proc = Runtime.getRuntime().exec(command);
-	
-			// Read the output
-	
-			BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
-	
-			String line = "";
-			Pattern pattern = Pattern.compile(currFrameRegex);
-			Matcher m;
-	
-			while((line = reader.readLine()) != null) {
-				//System.out.println(currFrame);
-				m = pattern.matcher(line);
-				if (m.find( )) {
-					System.out.print("\r"+line+"\n");
-					System.out.print("As of xx:xx:xx, X jobs containing X frames remaining"); // TODO: isolation mode
-					continue;
-				}
-				System.out.print("\n"+line);
-			}
-	
-			proc.waitFor();
-			System.out.println();
-		}
-	
-		currFrame = "-1";
-		System.out.println("Took " + (System.currentTimeMillis()-start) +" ms.");
 	}
 
+	//
+	// MASTER
+	//
+	
 	private static void master() {
 
 		int choice;
@@ -415,7 +323,7 @@ public class App {
 					break; //Break the loop, we got what we want.
 				}
 			}
-			catch(Exception e){/*NaN?*/}
+			catch(Exception e){Scan.nextLine();/*NaN?*/}
 		}
 		if (choice != -1)
 		{
@@ -424,6 +332,92 @@ public class App {
 			writeDataFile(newJobArray);
 		}
 		//Else just return without doing anything
+		
+	}
+
+	//
+	// CLIENT
+	//
+	
+	private static void client() throws IOException, InterruptedException {
+
+		Runtime.getRuntime().addShutdownHook(new Thread() {
+			public void run() {
+				System.out.println("\n\nShutting Down...");
+				if (proc != null) {proc.destroy();}
+				if (currFrame != "-1" && isRendering)
+				{
+					try
+					{
+						Files.delete(Paths.get(workingDirectory+"\\"+currentJobFile+"\\"+currFrame+".jpg")); 
+						System.out.println("Deleted unfinshed frame "+currFrame+" successfully.");
+					} 
+					catch(NoSuchFileException e) 
+					{ 
+						System.out.println("Error deleting unfinished frame: No such file exists. " + workingDirectory+"\\"+currentJobFile+"\\"+currFrame+".jpg");
+					}
+					catch(IOException e) 
+					{ 
+						System.out.println("Error deleting unfinished frame: Invalid permissions. " + workingDirectory+"\\"+currentJobFile+"\\"+currFrame+".jpg");
+					} 
+	
+				}
+			}
+		});
+	
+		long start = System.currentTimeMillis();
+	
+	
+		isRendering = false;
+		Collection<Job> jobs = readDataFile();
+		for (Job job : jobs)
+		{
+			currentJobFile = job.file;
+			for (int i = Integer.parseInt(job.startFrame);i <= Integer.parseInt(job.endFrame);i++)
+			{
+				currFrame = Integer.toString(i);
+				if (new File(workingDirectory+"\\"+job.file+"\\"+currFrame+".png").exists())
+				{
+					isRendering = false;
+					System.out.println("Skipping existing frame: "+currFrame);
+					continue;
+				}
+				isRendering = true;
+				String[] command = new String[] {
+				blenderPath,
+				"-b", workingDirectory+"\\"+job.file+".blend",
+				"-o", workingDirectory+"\\"+job.file+"\\#",
+				"-F", "JPEG",
+				"-x", "1",
+				"-f", currFrame};
+		
+				proc = Runtime.getRuntime().exec(command);
+		
+				// Read the output
+		
+				BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
+		
+				String line = "";
+				Pattern pattern = Pattern.compile(currFrameRegex);
+				Matcher m;
+		
+				while((line = reader.readLine()) != null) {
+					//System.out.println(currFrame);
+					m = pattern.matcher(line);
+					if (m.find( )) {
+						System.out.print("\r"+line+"\n");
+						System.out.print("As of xx:xx:xx, X jobs containing X frames remaining"); // TODO: isolation mode
+						continue;
+					}
+					System.out.print("\n"+line);
+				}
+		
+				proc.waitFor();
+				System.out.println();
+			}
+		}
+		currFrame = "-1";
+		System.out.println("Took " + (System.currentTimeMillis()-start) +" ms.");
 		
 	}
 

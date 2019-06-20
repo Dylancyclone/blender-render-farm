@@ -1,9 +1,9 @@
 package com.lathrum.blender_render_farm;
 
 public class Job {
-	private String file = "";
-	private String startFrame = "";
-	private String endFrame = "";
+	public String file = "";
+	public String startFrame = "";
+	public String endFrame = "";
 	
 	public Job(String file, String startFrame, String endFrame)
 	{
