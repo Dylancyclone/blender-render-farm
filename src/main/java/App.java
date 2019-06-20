@@ -227,6 +227,103 @@ public class App {
 		} while (choice != 4);
 		
 	}
+	
+	private static Collection<Job> readDataFile() {
+
+		Gson gson = new Gson();
+		
+		Type collectionType = new TypeToken<Collection<Job>>(){}.getType();
+		Collection<Job> jobs = new LinkedList<Job>();
+		
+		//Open file
+		File workingFile = new File(workingDirectory+"/render-farm/data.txt");
+		if (!workingFile.exists()) {
+			try {
+				File directory = new File(workingFile.getParent());
+				if (!directory.exists()) {
+					directory.mkdirs();
+				}
+				workingFile.createNewFile();
+			} catch (IOException e) {
+				System.out.println("Excepton Occured: " + e.toString());
+			}
+		}
+		
+		//Read File
+		InputStreamReader isReader;
+		try {
+			isReader = new InputStreamReader(new FileInputStream(workingFile), "UTF-8");
+
+			JsonReader myReader = new JsonReader(isReader);
+			Collection<Job> data = gson.fromJson(myReader, collectionType);
+			if (data != null) {jobs = data;}
+
+		} catch (Exception e) {
+			System.out.println("Error load cache from file " + e.toString());
+		}
+		return jobs;
+	}
+
+	private static void writeDataFile(Collection<Job> jobs) {
+
+		Gson gson = new Gson();
+		
+		//Open file
+		File workingFile = new File(workingDirectory+"/render-farm/data.txt");
+		if (!workingFile.exists()) {
+			try {
+				File directory = new File(workingFile.getParent());
+				if (!directory.exists()) {
+					directory.mkdirs();
+				}
+				workingFile.createNewFile();
+			} catch (IOException e) {
+				System.out.println("Excepton Occured: " + e.toString());
+			}
+		}
+
+		//Write file
+		try {
+			FileWriter writer = new FileWriter(workingFile.getAbsoluteFile(), false);
+			writer.write(gson.toJson(jobs));
+			writer.close();
+
+			//System.out.println("\nData saved at file location: " + workingDirectory+"/render-farm/data.txt" + " Data: " + gson.toJson(jobs) + "\n");
+			System.out.println("Job sucessfully created");
+		} catch (IOException e) {
+			System.out.println("Error while saving data to file " + e.toString());
+		}
+	}
+	private static void writeDataFile(Object[] jobs) {
+
+		Gson gson = new Gson();
+		
+		//Open file
+		File workingFile = new File(workingDirectory+"/render-farm/data.txt");
+		if (!workingFile.exists()) {
+			try {
+				File directory = new File(workingFile.getParent());
+				if (!directory.exists()) {
+					directory.mkdirs();
+				}
+				workingFile.createNewFile();
+			} catch (IOException e) {
+				System.out.println("Excepton Occured: " + e.toString());
+			}
+		}
+
+		//Write file
+		try {
+			FileWriter writer = new FileWriter(workingFile.getAbsoluteFile(), false);
+			writer.write(gson.toJson(jobs));
+			writer.close();
+
+			//System.out.println("\nData saved at file location: " + workingDirectory+"/render-farm/data.txt" + " Data: " + gson.toJson(jobs) + "\n");
+			System.out.println("Job sucessfully created");
+		} catch (IOException e) {
+			System.out.println("Error while saving data to file " + e.toString());
+		}
+	}
 
 	private static void createJob() {
 
@@ -268,93 +365,22 @@ public class App {
 		}
 
 		Job job = new Job(file, startFrame, endFrame);
-		Gson gson = new Gson();
 		
-		Type collectionType = new TypeToken<Collection<Job>>(){}.getType();
-		Collection<Job> jobs = new LinkedList<Job>();
-		
-		//Open file
-		File workingFile = new File(workingDirectory+"/render-farm/data.txt");
-		if (!workingFile.exists()) {
-			try {
-				File directory = new File(workingFile.getParent());
-				if (!directory.exists()) {
-					directory.mkdirs();
-				}
-				workingFile.createNewFile();
-			} catch (IOException e) {
-				System.out.println("Excepton Occured: " + e.toString());
-			}
-		}
-		
-		//Read File
-		InputStreamReader isReader;
-		try {
-			isReader = new InputStreamReader(new FileInputStream(workingFile), "UTF-8");
+		Collection<Job> jobs = readDataFile();
 
-			JsonReader myReader = new JsonReader(isReader);
-			Collection<Job> data = gson.fromJson(myReader, collectionType);
-			if (data != null) {jobs = data;}
-
-		} catch (Exception e) {
-			System.out.println("Error load cache from file " + e.toString());
-		}
-
-		//System.out.println("\nData loaded successfully from file " + workingDirectory+"/render-farm/data.txt");
 		//System.out.println(gson.toJson(jobs));
 		
 		jobs.add(job);
-
-		//Write file
-		try {
-			FileWriter writer = new FileWriter(workingFile.getAbsoluteFile(), false);
-			writer.write(gson.toJson(jobs));
-			writer.close();
-
-			//System.out.println("\nData saved at file location: " + workingDirectory+"/render-farm/data.txt" + " Data: " + gson.toJson(jobs) + "\n");
-			System.out.println("Job sucessfully created");
-		} catch (IOException e) {
-			System.out.println("Error while saving data to file " + e.toString());
-		}
+		writeDataFile(jobs);
 		
 	}
 
 	private static void listJobs() {
 
-		Gson gson = new Gson();
-		Type collectionType = new TypeToken<Collection<Job>>(){}.getType();
-		Collection<Job> jobs = new LinkedList<Job>();
-		
-		//Open file
-		File workingFile = new File(workingDirectory+"/render-farm/data.txt");
-		if (!workingFile.exists()) {
-			try {
-				File directory = new File(workingFile.getParent());
-				if (!directory.exists()) {
-					directory.mkdirs();
-				}
-				workingFile.createNewFile();
-			} catch (IOException e) {
-				System.out.println("Excepton Occured: " + e.toString());
-			}
-		}
-		
-		//Read File
-		InputStreamReader isReader;
-		try {
-			isReader = new InputStreamReader(new FileInputStream(workingFile), "UTF-8");
+		Collection<Job> jobs = readDataFile();
 
-			JsonReader myReader = new JsonReader(isReader);
-			Collection<Job> data = gson.fromJson(myReader, collectionType);
-			if (data != null) {jobs = data;}
-
-		} catch (Exception e) {
-			System.out.println("Error load cache from file " + e.toString());
-		}
-
-		//System.out.println("\nData loaded successfully from file " + workingDirectory+"/render-farm/data.txt");
-		System.out.println();
 		//System.out.println(gson.toJson(jobs));
+		System.out.println();
 		for (Job item : jobs)
 		{
 			System.out.println(item);
@@ -364,45 +390,15 @@ public class App {
 
 	private static void deleteJob() {
 
-		Gson gson = new Gson();
-		Type collectionType = new TypeToken<Collection<Job>>(){}.getType();
-		Collection<Job> jobs = new LinkedList<Job>();
-		
-		//Open file
-		File workingFile = new File(workingDirectory+"/render-farm/data.txt");
-		if (!workingFile.exists()) {
-			try {
-				File directory = new File(workingFile.getParent());
-				if (!directory.exists()) {
-					directory.mkdirs();
-				}
-				workingFile.createNewFile();
-			} catch (IOException e) {
-				System.out.println("Excepton Occured: " + e.toString());
-			}
-		}
-		
-		//Read File
-		InputStreamReader isReader;
-		try {
-			isReader = new InputStreamReader(new FileInputStream(workingFile), "UTF-8");
-
-			JsonReader myReader = new JsonReader(isReader);
-			Collection<Job> data = gson.fromJson(myReader, collectionType);
-			if (data != null) {jobs = data;}
-
-		} catch (Exception e) {
-			System.out.println("Error load cache from file " + e.toString());
-		}
-
-		//System.out.println("\nData loaded successfully from file " + workingDirectory+"/render-farm/data.txt");
+		Collection<Job> jobs = readDataFile();
 		System.out.println();
 		//System.out.println(gson.toJson(jobs));
 		Object[] jobArray = jobs.toArray();
-		
-		for (int i = 0; i < jobArray.length; i++)
+
+		System.out.println("[0] Cancel");
+		for (int i = 1; i <= jobArray.length; i++)
 		{
-			System.out.println("["+i+"] "+jobArray[i]);
+			System.out.println("["+i+"] "+jobArray[i-1]);
 		}
 
 		int choice;
@@ -412,28 +408,22 @@ public class App {
 			try
 			{
 				System.out.println("Which Job would you like to delete?");
-				choice = Scan.nextInt();
+				choice = Scan.nextInt()-1;
 	
-				if (choice > 0 && choice < jobArray.length)
+				if (choice >= -1 && choice < jobArray.length)
 				{
 					break; //Break the loop, we got what we want.
 				}
 			}
 			catch(Exception e){/*NaN?*/}
 		}
-		Object[] newJobArray = removeElement(jobArray,choice);
-		
-		//Write file
-		try {
-			FileWriter writer = new FileWriter(workingFile.getAbsoluteFile(), false);
-			writer.write(gson.toJson(newJobArray));
-			writer.close();
-
-			//System.out.println("\nData saved at file location: " + workingDirectory+"/render-farm/data.txt" + " Data: " + gson.toJson(jobs) + "\n");
-			System.out.println("Job sucessfully deleted");
-		} catch (IOException e) {
-			System.out.println("Error while saving data to file " + e.toString());
+		if (choice != -1)
+		{
+			Object[] newJobArray = removeElement(jobArray,choice);
+	
+			writeDataFile(newJobArray);
 		}
+		//Else just return without doing anything
 		
 	}
 

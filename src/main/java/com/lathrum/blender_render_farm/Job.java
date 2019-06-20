@@ -14,6 +14,6 @@ public class Job {
 	
 	public String toString()
 	{
-		return "File: " + this.file + ", Starting Frame: " + this.startFrame +", Ending Frame:  " + this.endFrame;
+		return "File: " + this.file + ", Starting Frame: " + this.startFrame +", Ending Frame: " + this.endFrame;
 	}
 }
