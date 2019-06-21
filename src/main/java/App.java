@@ -42,6 +42,17 @@ public class App {
 		
 		return anotherArray; 
 	}
+	
+	public static String formatPath(String res) {
+	    if (res==null) return null;
+	    if (File.separatorChar=='\\') {
+	        // From Windows to Linux/Mac
+	        return res.replace('/', File.separatorChar);
+	    } else {
+	        // From Linux/Mac to Windows
+	        return res.replace('\\', File.separatorChar);
+	    }
+	}
 
 	public static void main(String[] args) throws IOException, InterruptedException {
 
@@ -349,16 +360,16 @@ public class App {
 				{
 					try
 					{
-						Files.delete(Paths.get(workingDirectory+"\\"+currentJobFile+"\\"+currFrame+".jpg")); 
+						Files.delete(Paths.get(formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+".jpg"))); 
 						System.out.println("Deleted unfinshed frame "+currFrame+" successfully.");
 					} 
 					catch(NoSuchFileException e) 
 					{ 
-						System.out.println("Error deleting unfinished frame: No such file exists. " + workingDirectory+"\\"+currentJobFile+"\\"+currFrame+".jpg");
+						System.out.println("Error deleting unfinished frame: No such file exists. " + formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+".jpg"));
 					}
 					catch(IOException e) 
 					{ 
-						System.out.println("Error deleting unfinished frame: Invalid permissions. " + workingDirectory+"\\"+currentJobFile+"\\"+currFrame+".jpg");
+						System.out.println("Error deleting unfinished frame: Invalid permissions. " + formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+".jpg"));
 					} 
 	
 				}
@@ -376,7 +387,7 @@ public class App {
 			for (int i = Integer.parseInt(job.startFrame);i <= Integer.parseInt(job.endFrame);i++)
 			{
 				currFrame = Integer.toString(i);
-				if (new File(workingDirectory+"\\"+job.file+"\\"+currFrame+".png").exists())
+				if (new File(formatPath(workingDirectory+File.separator+job.file+File.separator+currFrame+".png")).exists())
 				{
 					isRendering = false;
 					System.out.println("Skipping existing frame: "+currFrame);
@@ -385,8 +396,8 @@ public class App {
 				isRendering = true;
 				String[] command = new String[] {
 				blenderPath,
-				"-b", workingDirectory+"\\"+job.file+".blend",
-				"-o", workingDirectory+"\\"+job.file+"\\#",
+				"-b", formatPath(workingDirectory+File.separator+job.file+".blend"),
+				"-o", formatPath(workingDirectory+File.separator+job.file+File.separator+"#"),
 				"-F", "JPEG",
 				"-x", "1",
 				"-f", currFrame};
