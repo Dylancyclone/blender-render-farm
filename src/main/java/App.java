@@ -55,6 +55,17 @@ public class App {
 	    }
 	}
 
+	
+	public static String normalizeFileFormat(String format) {
+		format = format.toLowerCase();
+
+		if (format.equals("jpeg")) //While blender takes "JPEG" as the render format, it still outputs a .jpg :(
+		{
+			format="jpg";
+		}
+		return format;
+	}
+
 	public static void main(String[] args) throws IOException, InterruptedException {
 
 		//Prepare Arguments
@@ -380,7 +391,7 @@ public class App {
 					{
 						Files.delete(Paths.get(formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+"."+currentJobFormat))); 
 						System.out.println("Deleted unfinshed frame "+currFrame+" successfully.");
-					} 
+					}
 					catch(NoSuchFileException e) 
 					{ 
 						System.out.println("Error deleting unfinished frame: No such file exists. " + formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+"."+currentJobFormat));
@@ -388,30 +399,92 @@ public class App {
 					catch(IOException e) 
 					{ 
 						System.out.println("Error deleting unfinished frame: Invalid permissions. " + formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+"."+currentJobFormat));
-					} 
+					}
 	
 				}
 			}
 		});
 	
-		long start = System.currentTimeMillis();
-	
-	
 		isRendering = false;
-		Collection<Job> jobs = readDataFile();
+		while (true)
+		{
+			Collection<Job> jobs = readDataFile();
+			int renderedFrames = renderJobs(jobs);
+			System.out.println("Rendered "+renderedFrames+" Frame(s)");
+			
+			if (renderedFrames == 0) //If we didn't render anything
+			{
+				System.out.println();
+				System.out.println("Setting up watchers...");
+				
+		        final WatchService watchService = FileSystems.getDefault().newWatchService();
+
+	            final Path workingDir = Paths.get(formatPath(workingDirectory+"/render-farm/"));
+	            workingDir.register(watchService, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
+	            System.out.println("Watching directory: " + workingDir.toAbsolutePath());
+		        for (Job job : jobs) {
+		            final Path watchedDir = Paths.get(formatPath(workingDirectory+File.separator+job.file+File.separator));
+		            watchedDir.register(watchService, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
+		            System.out.println("Watching directory: " + watchedDir.toAbsolutePath());
+		        }
+
+				System.out.println();
+				System.out.println();
+				System.out.println("Waiting for something to do...");
+		        while (true) {
+		            final WatchKey watchKey = watchService.take();
+		            final Watchable watchable = watchKey.watchable();
+
+		            if (!(watchable instanceof Path)) {
+		                throw new AssertionError("The watchable should have been a Path");
+		            }
+
+		            final Path directory = (Path) watchable;
+		            System.out.println("New event for directory: " + directory);
+		            System.out.println("Checking to rerender");
+		            break;
+		        }
+			}
+		}
+		
+	}
+	
+
+	private static int renderJobs(Collection<Job> jobs) throws IOException, InterruptedException {
+		
+		int renderedFrames = 0;
+		isRendering = false;
 		for (Job job : jobs)
 		{
 			currentJobFile = job.file;
-			currentJobFormat = job.format;
+			currentJobFormat = normalizeFileFormat(job.format);
+
+			boolean needToRender = false;
 			for (int i = Integer.parseInt(job.startFrame);i <= Integer.parseInt(job.endFrame);i++)
 			{
 				currFrame = Integer.toString(i);
-				if (new File(formatPath(workingDirectory+File.separator+job.file+File.separator+currFrame+".png")).exists())
+				if (!new File(formatPath(workingDirectory+File.separator+job.file+File.separator+currFrame+"."+currentJobFormat)).exists())
+				{
+					needToRender = true; //If a file does not exist, we need to render it
+					break;
+				}
+			}
+			if (!needToRender)
+			{
+				System.out.println("Skipping job: "+job.file+", no frames need rendering");
+				continue;
+			}
+			
+			for (int i = Integer.parseInt(job.startFrame);i <= Integer.parseInt(job.endFrame);i++)
+			{
+				currFrame = Integer.toString(i);
+				if (new File(formatPath(workingDirectory+File.separator+job.file+File.separator+currFrame+"."+currentJobFormat)).exists())
 				{
 					isRendering = false;
 					System.out.println("Skipping existing frame: "+currFrame);
 					continue;
 				}
+				renderedFrames++;
 				isRendering = true;
 				String[] command = new String[] {
 				blenderPath,
@@ -447,8 +520,7 @@ public class App {
 			}
 		}
 		currFrame = "-1";
-		System.out.println("Took " + (System.currentTimeMillis()-start) +" ms.");
-		
+		return renderedFrames;
 	}
 
 }
