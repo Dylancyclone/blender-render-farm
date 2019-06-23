@@ -17,6 +17,7 @@ public class App {
 	public static Process proc;
 	public static boolean isRendering = false;
 	public static String currentJobFile;
+	public static String currentJobFormat;
 	public static final Scanner Scan = new Scanner(System.in);
 	
 	public static boolean isNumeric(String strNum) {
@@ -249,6 +250,7 @@ public class App {
 		String file = "";
 		String startFrame = "";
 		String endFrame = "";
+		String format = "";
 		
 		while (true) //Loop until we get what we want
 		{
@@ -282,8 +284,24 @@ public class App {
 				break; //Break the loop, we got what we want.
 			}
 		}
+		
+		while (true) //Loop until we get what we want
+		{
+			List<String> formats = Arrays.asList("TGA","RAWTGA","JPEG","IRIS","IRIZ","AVIRAW","AVIJPEG","PNG","BMP");
+			System.out.print("Enter the File format [TGA,RAWTGA,JPEG,IRIS,IRIZ,AVIRAW,AVIJPEG,PNG,BMP] (Default: JPEG): ");
+			format = Scan.nextLine().toUpperCase();
 
-		Job job = new Job(file, startFrame, endFrame);
+			if (format.length() == 0 || format.equals("JPG")) //Default or common mistake
+			{
+				format="JPEG";
+			}
+			if (formats.contains(format))
+			{
+				break; //Break the loop, we got what we want.
+			}
+		}
+
+		Job job = new Job(file, startFrame, endFrame, format);
 		
 		Collection<Job> jobs = readDataFile();
 
@@ -360,16 +378,16 @@ public class App {
 				{
 					try
 					{
-						Files.delete(Paths.get(formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+".jpg"))); 
+						Files.delete(Paths.get(formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+"."+currentJobFormat))); 
 						System.out.println("Deleted unfinshed frame "+currFrame+" successfully.");
 					} 
 					catch(NoSuchFileException e) 
 					{ 
-						System.out.println("Error deleting unfinished frame: No such file exists. " + formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+".jpg"));
+						System.out.println("Error deleting unfinished frame: No such file exists. " + formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+"."+currentJobFormat));
 					}
 					catch(IOException e) 
 					{ 
-						System.out.println("Error deleting unfinished frame: Invalid permissions. " + formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+".jpg"));
+						System.out.println("Error deleting unfinished frame: Invalid permissions. " + formatPath(workingDirectory+File.separator+currentJobFile+File.separator+currFrame+"."+currentJobFormat));
 					} 
 	
 				}
@@ -384,6 +402,7 @@ public class App {
 		for (Job job : jobs)
 		{
 			currentJobFile = job.file;
+			currentJobFormat = job.format;
 			for (int i = Integer.parseInt(job.startFrame);i <= Integer.parseInt(job.endFrame);i++)
 			{
 				currFrame = Integer.toString(i);
@@ -398,7 +417,7 @@ public class App {
 				blenderPath,
 				"-b", formatPath(workingDirectory+File.separator+job.file+".blend"),
 				"-o", formatPath(workingDirectory+File.separator+job.file+File.separator+"#"),
-				"-F", "JPEG",
+				"-F", job.format,
 				"-x", "1",
 				"-f", currFrame};
 		
