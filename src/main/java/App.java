@@ -1,4 +1,5 @@
 import java.util.regex.*;
+import org.apache.commons.cli.*;
 import java.io.*;
 import java.lang.reflect.Type;
 import java.nio.file.*;
@@ -69,17 +70,42 @@ public class App {
 	public static void main(String[] args) throws IOException, InterruptedException {
 
 		//Prepare Arguments
-		try
-		{
-			//Correct number of args
+		CommandLineParser parser = new DefaultParser();
+		Options options = new Options();
+
+		options.addOption("h", "help", false, "Show this message");
+		options.addOption("c", "client", false, "Instantly become a client");
+		options.addOption("m", "master", false, "Instantly become a master");
+		//options.addOption("b", "basic", false, "Only show basic output (functionally identical)");
+		//options.addOption("e", "extra", false, "Show extra output (may be slower)");
+	    try {
+	        // parse the command line arguments
+	        CommandLine cmd = parser.parse(options, args);
+		    if(cmd.hasOption("h") || args[0].charAt(0) =='-' || args[1].charAt(0) =='-') {
+		    	HelpFormatter formatter = new HelpFormatter();
+		    	formatter.printHelp("blender-render-farm [WORKING_DIRECTORY] [BLENDER_EXECUTABLE] [args...]", options, false);
+				System.exit(0);
+		    }
 			workingDirectory = args[0];
 			blenderPath = args[1];
-		}
-		catch(Exception e)
-		{
-			System.out.println("\nUsage: blender-render-farm working_directory blender_path\n");
+		    if(cmd.hasOption("c")) {
+		        client();
+		    }
+		    if(cmd.hasOption("m")) {
+				master();
+		    }
+	    }
+	    catch( ParseException e ) {
+	        System.err.println(e.getMessage());
+	    	HelpFormatter formatter = new HelpFormatter();
+	    	formatter.printHelp("blender-render-farm [WORKING_DIRECTORY] [BLENDER_EXECUTABLE] [args...]", options, false);
 			System.exit(0);
-		}
+	    }
+	    catch( Exception e ) {
+	    	HelpFormatter formatter = new HelpFormatter();
+	    	formatter.printHelp("blender-render-farm [WORKING_DIRECTORY] [BLENDER_EXECUTABLE] [args...]", options, false);
+			System.exit(0);
+	    }
 
 
 		int choice;
@@ -509,7 +535,7 @@ public class App {
 					m = pattern.matcher(line);
 					if (m.find( )) {
 						System.out.print("\r"+line+"\n");
-						System.out.print("As of xx:xx:xx, X jobs containing X frames remaining"); // TODO: isolation mode
+						System.out.print("As of xx:xx:xx, X jobs containing X frames remaining"); // TODO: extra mode
 						continue;
 					}
 					System.out.print("\n"+line);
