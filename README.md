@@ -11,6 +11,7 @@ From the root folder, run `mvn package;java -jar ./target/blender-render-farm-0.
 ```
 usage: blender-render-farm [WORKING_DIRECTORY] [BLENDER_EXECUTABLE]
                            [args...]
+ -b,--basic    Only show basic output (functionally identical)
  -c,--client   Instantly become a client
  -h,--help     Show this message
  -m,--master   Instantly become a master

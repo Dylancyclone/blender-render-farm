@@ -6,7 +6,9 @@ import java.nio.file.*;
 import com.google.gson.*;
 import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
+import me.tongfei.progressbar.*;
 import com.lathrum.blender_render_farm.Job;
+
 import java.util.*;
 
 public class App {
@@ -14,7 +16,7 @@ public class App {
 	public static String workingDirectory;
 	public static String blenderPath;
 	public static String currFrame = "0";
-	public static String currFrameRegex = "Fra:([0-9]+)";
+	public static boolean basicMode = false;
 	public static Process proc;
 	public static boolean isRendering = false;
 	public static String currentJobFile;
@@ -76,7 +78,7 @@ public class App {
 		options.addOption("h", "help", false, "Show this message");
 		options.addOption("c", "client", false, "Instantly become a client");
 		options.addOption("m", "master", false, "Instantly become a master");
-		//options.addOption("b", "basic", false, "Only show basic output (functionally identical)");
+		options.addOption("b", "basic", false, "Only show basic output (functionally identical)");
 		//options.addOption("e", "extra", false, "Show extra output (may be slower)");
 	    try {
 	        // parse the command line arguments
@@ -88,6 +90,9 @@ public class App {
 		    }
 			workingDirectory = args[0];
 			blenderPath = args[1];
+		    if(cmd.hasOption("b")) {
+				basicMode = true;
+		    }
 		    if(cmd.hasOption("c")) {
 		        client();
 		    }
@@ -447,11 +452,11 @@ public class App {
 
 	            final Path workingDir = Paths.get(formatPath(workingDirectory+"/render-farm/"));
 	            workingDir.register(watchService, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
-	            System.out.println("Watching directory: " + workingDir.toAbsolutePath());
+	            //System.out.println("Watching directory: " + workingDir.toAbsolutePath());
 		        for (Job job : jobs) {
 		            final Path watchedDir = Paths.get(formatPath(workingDirectory+File.separator+job.file+File.separator));
 		            watchedDir.register(watchService, StandardWatchEventKinds.ENTRY_DELETE, StandardWatchEventKinds.ENTRY_MODIFY);
-		            System.out.println("Watching directory: " + watchedDir.toAbsolutePath());
+		            //System.out.println("Watching directory: " + watchedDir.toAbsolutePath());
 		        }
 
 				System.out.println();
@@ -500,6 +505,7 @@ public class App {
 				System.out.println("Skipping job: "+job.file+", no frames need rendering");
 				continue;
 			}
+			System.out.println("\nRendering job: "+job.file);
 			
 			for (int i = Integer.parseInt(job.startFrame);i <= Integer.parseInt(job.endFrame);i++)
 			{
@@ -527,22 +533,57 @@ public class App {
 				BufferedReader reader = new BufferedReader(new InputStreamReader(proc.getInputStream()));
 		
 				String line = "";
-				Pattern pattern = Pattern.compile(currFrameRegex);
+				String currFrameRegex = "Fra:([0-9]+)";
+				Pattern currFramePattern = Pattern.compile(currFrameRegex);
 				Matcher m;
-		
-				while((line = reader.readLine()) != null) {
-					//System.out.println(currFrame);
-					m = pattern.matcher(line);
-					if (m.find( )) {
-						System.out.print("\r"+line+"\n");
-						System.out.print("As of xx:xx:xx, X jobs containing X frames remaining"); // TODO: extra mode
-						continue;
+
+				if (!basicMode)
+				{
+					while((line = reader.readLine()) != null) {
+						//System.out.println(currFrame);
+						m = currFramePattern.matcher(line);
+						if (m.find()) {
+							System.out.print("\r"+line+"\n");
+							System.out.print("As of xx:xx:xx, X jobs containing X frames remaining"); // TODO: extra mode
+						}
+						else
+						{
+							System.out.print("\n"+line);
+						}
 					}
-					System.out.print("\n"+line);
+				}
+				else
+				{
+
+					String blenderRenderRegex = "Part ([0-9]+)-([0-9]+)";
+					Pattern blenderRenderPattern = Pattern.compile(blenderRenderRegex);
+					Matcher blenderRenderMatch;
+					
+					String cyclesRenderRegex = "Tile ([0-9]+)/([0-9]+), Sample ([0-9]+)/([0-9]+)";
+					Pattern cyclesRenderPattern = Pattern.compile(cyclesRenderRegex);
+					Matcher cyclesRenderMatch;
+					
+					try (ProgressBar pb = new ProgressBar("Rendering frame "+currFrame, -1, ProgressBarStyle.ASCII)) {
+						while((line = reader.readLine()) != null) {
+							//System.out.println(currFrame);
+							m = currFramePattern.matcher(line);
+							if (m.find()) {
+								blenderRenderMatch = blenderRenderPattern.matcher(line);
+								cyclesRenderMatch = cyclesRenderPattern.matcher(line);
+								if (blenderRenderMatch.find()) {
+									pb.stepTo(Long.parseLong(blenderRenderMatch.group(1)));
+								    pb.maxHint(Long.parseLong(blenderRenderMatch.group(2)));
+								}
+								else if (cyclesRenderMatch.find()) {
+									pb.stepTo(Long.parseLong(cyclesRenderMatch.group(1))*Long.parseLong(cyclesRenderMatch.group(4))+Long.parseLong(cyclesRenderMatch.group(3)));
+								    pb.maxHint(Long.parseLong(cyclesRenderMatch.group(2))*Long.parseLong(cyclesRenderMatch.group(4)));
+								}
+							}
+						}
+					}
 				}
 		
 				proc.waitFor();
-				System.out.println();
 			}
 		}
 		currFrame = "-1";
