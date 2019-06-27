@@ -17,6 +17,7 @@ public class App {
 	public static String blenderPath;
 	public static String currFrame = "0";
 	public static boolean basicMode = false;
+	public static boolean extraMode = false;
 	public static Process proc;
 	public static boolean isRendering = false;
 	public static String currentJobFile;
@@ -78,8 +79,8 @@ public class App {
 		options.addOption("h", "help", false, "Show this message");
 		options.addOption("c", "client", false, "Instantly become a client");
 		options.addOption("m", "master", false, "Instantly become a master");
-		options.addOption("b", "basic", false, "Only show basic output (functionally identical)");
-		//options.addOption("e", "extra", false, "Show extra output (may be slower)");
+		options.addOption("b", "basic", false, "Only show basic output");
+		options.addOption("e", "extra", false, "Show extra output");
 	    try {
 	        // parse the command line arguments
 	        CommandLine cmd = parser.parse(options, args);
@@ -92,6 +93,9 @@ public class App {
 			blenderPath = args[1];
 		    if(cmd.hasOption("b")) {
 				basicMode = true;
+		    }
+		    if(cmd.hasOption("e")) {
+				extraMode = true;
 		    }
 		    if(cmd.hasOption("c")) {
 		        client();
@@ -537,24 +541,8 @@ public class App {
 				Pattern currFramePattern = Pattern.compile(currFrameRegex);
 				Matcher m;
 
-				if (!basicMode)
+				if (basicMode)
 				{
-					while((line = reader.readLine()) != null) {
-						//System.out.println(currFrame);
-						m = currFramePattern.matcher(line);
-						if (m.find()) {
-							System.out.print("\r"+line+"\n");
-							System.out.print("As of xx:xx:xx, X jobs containing X frames remaining"); // TODO: extra mode
-						}
-						else
-						{
-							System.out.print("\n"+line);
-						}
-					}
-				}
-				else
-				{
-
 					String blenderRenderRegex = "Part ([0-9]+)-([0-9]+)";
 					Pattern blenderRenderPattern = Pattern.compile(blenderRenderRegex);
 					Matcher blenderRenderMatch;
@@ -581,6 +569,26 @@ public class App {
 							}
 						}
 					}
+				}
+				else if (extraMode)
+				{
+					while((line = reader.readLine()) != null) {
+						System.out.println(line);
+					}
+				}
+				else
+				{
+					while((line = reader.readLine()) != null) {
+						m = currFramePattern.matcher(line);
+						if (m.find()) {
+							System.out.print("\r"+line);
+						}
+					}
+				}
+				
+				if (!basicMode)
+				{
+					System.out.println();
 				}
 		
 				proc.waitFor();
